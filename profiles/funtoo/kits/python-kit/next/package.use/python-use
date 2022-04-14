@@ -1,0 +1,15 @@
+=sys-libs/compiler-rt-sanitizers-12.0.1 python_single_target_python3_9 python_targets_python3_9
+=sys-libs/compiler-rt-sanitizers-13.0.0 python_single_target_python3_9 python_targets_python3_9
+=sys-libs/compiler-rt-sanitizers-9.0.1-r1 python_single_target_python3_7 python_targets_python3_7
+dev-libs/libclc python_single_target_python3_9 python_targets_python3_9
+dev-ml/llvm-ocaml python_single_target_python3_9 python_targets_python3_9
+dev-python/clang-python python_single_target_python3_9 python_targets_python3_9
+dev-util/lldb python_single_target_python3_9 python_targets_python3_9
+sys-devel/clang python_single_target_python3_9 python_targets_python3_9
+sys-devel/lld python_single_target_python3_9 python_targets_python3_9
+sys-devel/llvm python_single_target_python3_9 python_targets_python3_9
+sys-libs/compiler-rt python_single_target_python3_9 python_targets_python3_9
+sys-libs/libcxx python_single_target_python3_9 python_targets_python3_9
+sys-libs/libcxxabi python_single_target_python3_9 python_targets_python3_9
+sys-libs/libomp python_single_target_python3_9 python_targets_python3_9
+sys-libs/llvm-libunwind python_single_target_python3_9 python_targets_python3_9
