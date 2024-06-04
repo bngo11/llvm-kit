@@ -330,7 +330,7 @@ multilib_src_configure() {
 			-DCLANG_INCLUDE_DOCS=${build_docs}
 		)
 	fi
-	if multilib_native_use extra; then
+	if use extra; then
 		mycmakeargs+=(
 			-DLLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR="${WORKDIR}"/clang-tools-extra
  			-DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=${build_docs}
