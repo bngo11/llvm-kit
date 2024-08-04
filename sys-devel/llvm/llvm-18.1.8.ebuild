@@ -16,7 +16,7 @@ HOMEPAGE="https://llvm.org/"
 # 4. ConvertUTF.h: TODO.
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA BSD public-domain rc"
-SLOT="16"
+SLOT="18"
 KEYWORDS="next"
 IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3 zstd
 	kernel_Darwin"

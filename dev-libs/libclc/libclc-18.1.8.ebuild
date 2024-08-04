@@ -13,7 +13,7 @@ SLOT="0"
 KEYWORDS="*"
 IUSE="+spirv video_cards_nvidia video_cards_r600 video_cards_radeonsi"
 
-LLVM_MAX_SLOT=16
+LLVM_MAX_SLOT=18
 BDEPEND="
 	${PYTHON_DEPS}
 	|| (
