@@ -57,7 +57,7 @@ RDEPEND="${RDEPEND}
 PDEPEND="sys-devel/llvm-common
 	gold? ( >=sys-devel/llvmgold-${SLOT} )"
 
-LLVM_COMPONENTS=( llvm cmake )
+LLVM_COMPONENTS=( llvm cmake third-party )
 LLVM_MANPAGES=pregenerated
 LLVM_USE_TARGETS=provide
 llvm.org_set_globals
@@ -276,8 +276,8 @@ get_distribution_components() {
 			llvm-rc
 			llvm-readelf
 			llvm-readobj
+			llvm-readtapi
 			llvm-reduce
-			llvm-remark-size-diff
 			llvm-remarkutil
 			llvm-rtdyld
 			llvm-sim
@@ -287,7 +287,6 @@ get_distribution_components() {
 			llvm-strings
 			llvm-strip
 			llvm-symbolizer
-			llvm-tapi-diff
 			llvm-tli-checker
 			llvm-undname
 			llvm-windres
