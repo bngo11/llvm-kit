@@ -33,7 +33,7 @@ RDEPEND="
 BDEPEND="
 	${PYTHON_DEPS}
 	>=dev-util/cmake-3.16
-	doc? ( dev-python/recommonmark dev-python/sphinx )
+	doc? ( dev-python/myst-parser dev-python/sphinx )
 	xml? ( virtual/pkgconfig )
 "
 PDEPEND="
@@ -437,7 +437,7 @@ multilib_src_install() {
 	# (also drop the version suffix from runtime headers)
 	rm -rf "${ED}"/usr/include || die
 	mv "${ED}"/usr/lib/llvm/${SLOT}/include "${ED}"/usr/include || die
-	mv "${ED}"/usr/lib/llvm/${SLOT}/$(get_libdir)/clang "${ED}"/usr/include/clangrt || die
+	mv "${ED}"/usr/lib/clang "${ED}"/usr/include/clangrt || die
 	if multilib_is_native_abi; then
 		# don't wrap clang-tidy headers, the list is too long
 		# (they're fine for non-native ABI but enabling the targets is problematic)
