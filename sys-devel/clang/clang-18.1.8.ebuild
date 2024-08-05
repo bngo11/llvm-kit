@@ -72,11 +72,6 @@ llvm.org_set_globals
 # Therefore: use sys-devel/clang[${MULTILIB_USEDEP}] only if you need
 # multilib clang* libraries (not runtime, not wrappers).
 
-pkg_setup() {
-	LLVM_MAX_SLOT=${SLOT} llvm_pkg_setup
-	python-single-r1_pkg_setup
-}
-
 src_prepare() {
 	# create extra parent dir for relative CLANG_RESOURCE_DIR access
 	mkdir -p x/y || die
