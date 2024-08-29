@@ -14,6 +14,7 @@ KEYWORDS="next"
 IUSE="+clang debug test"
 RESTRICT="!test? ( test ) !clang? ( test )"
 
+LLVM_MAX_SLOT=${SLOT%%.*}
 CLANG_SLOT=${SLOT%%.*}
 # llvm-6 for new lit options
 DEPEND="

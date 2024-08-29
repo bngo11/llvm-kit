@@ -24,6 +24,7 @@ RDEPEND="
 	${PYTHON_DEPS}"
 DEPEND="${RDEPEND}"
 
+LLVM_MAX_SLOT=${SLOT%%.*}
 LLVM_COMPONENTS=( clang/bindings/python )
 llvm.org_set_globals
 

@@ -30,6 +30,7 @@ BDEPEND="
 		$(python_gen_any_dep 'dev-python/lit[${PYTHON_USEDEP}]')
 	)"
 
+LLVM_MAX_SLOT=${SLOT%%.*}
 LLVM_COMPONENTS=( libcxx{abi,} llvm/cmake )
 llvm.org_set_globals
 
