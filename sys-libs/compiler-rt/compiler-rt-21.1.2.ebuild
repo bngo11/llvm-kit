@@ -26,10 +26,10 @@ BDEPEND="
 		$(python_gen_any_dep ">=dev-python/lit-9.0.1[\${PYTHON_USEDEP}]")
 		=sys-devel/clang-${PV%_*}*:${CLANG_SLOT}
 	)
-	${PYTHON_DEPS}"
+	${PYTHON_DEPS}
+"
 
-LLVM_COMPONENTS=( compiler-rt )
-LLVM_PATCHSET=${PV/_/-}
+LLVM_COMPONENTS=( compiler-rt cmake llvm/cmake )
 llvm.org_set_globals
 
 python_check_deps() {
@@ -66,21 +66,32 @@ src_configure() {
 	# pre-set since we need to pass it to cmake
 	BUILD_DIR=${WORKDIR}/${P}_build
 
-	local nolib_flags=( -nodefaultlibs -lc )
 	if use clang; then
-		local -x CC=${CHOST}-clang
-		local -x CXX=${CHOST}-clang++
+		# Only do this conditionally to allow overriding with
+		# e.g. CC=clang-13 in case of breakage
+		if ! tc-is-clang ; then
+			local -x CC=${CHOST}-clang
+			local -x CXX=${CHOST}-clang++
+		fi
 		strip-unsupported-flags
-		# ensure we can use clang before installing compiler-rt
-		local -x LDFLAGS="${LDFLAGS} ${nolib_flags[*]}"
-	elif ! test_compiler; then
+	fi
+
+	if ! test_compiler; then
 		if test_compiler "${nolib_flags[@]}"; then
+			local -x LDFLAGS="${LDFLAGS} ${nolib_flags[*]}"
+			ewarn "${CC} seems to lack runtime, trying with ${nolib_flags[*]}"
+		elif test_compiler "${nolib_flags[@]}" -nostartfiles; then
+			# Avoiding -nostartfiles earlier on for bug #862540,
+			# and set available entry symbol for bug #862798.
+			nolib_flags+=( -nostartfiles -emain )
+
 			local -x LDFLAGS="${LDFLAGS} ${nolib_flags[*]}"
 			ewarn "${CC} seems to lack runtime, trying with ${nolib_flags[*]}"
 		fi
 	fi
 
 	local mycmakeargs=(
+		-DLLVM_CONFIG_PATH="/usr/lib/llvm/${LLVM_MAJOR}/bin/llvm-config"
 		-DCOMPILER_RT_INSTALL_PATH="${EPREFIX}/usr/lib/clang/${SLOT}"
 
 		-DCOMPILER_RT_INCLUDE_TESTS=$(usex test)

@@ -16,14 +16,14 @@ HOMEPAGE="https://llvm.org/"
 # 4. ConvertUTF.h: TODO.
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA BSD public-domain rc"
-SLOT="13"
+SLOT="18"
 KEYWORDS="next"
-IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3
+IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3 zstd
 	kernel_Darwin"
 RESTRICT="!test? ( test )"
 
 RDEPEND="
-	sys-libs/zlib:0=[${MULTILIB_USEDEP}]
+	sys-libs/zlib:=
 	exegesis? ( dev-libs/libpfm:= )
 	gold? ( >=sys-devel/binutils-2.31.1-r4:*[plugins] )
 	libedit? ( dev-libs/libedit:0=[${MULTILIB_USEDEP}] )
@@ -31,7 +31,9 @@ RDEPEND="
 	ncurses? ( >=sys-libs/ncurses-5.9-r3:0=[${MULTILIB_USEDEP}] )
 	xar? ( app-arch/xar )
 	xml? ( dev-libs/libxml2:2= )
-	z3? ( >=sci-mathematics/z3-4.7.1:0=[${MULTILIB_USEDEP}] )"
+	z3? ( >=sci-mathematics/z3-4.7.1:0=[${MULTILIB_USEDEP}] )
+	zstd? ( app-arch/zstd:=[${MULTILIB_USEDEP}] )
+"
 DEPEND="${RDEPEND}
 	gold? ( sys-libs/binutils-libs )"
 BDEPEND="
@@ -42,10 +44,10 @@ BDEPEND="
 		<sys-libs/libcxx-$(ver_cut 1-3).9999
 		>=sys-devel/binutils-apple-5.1
 	)
-	doc? ( $(python_gen_any_dep '
-		dev-python/recommonmark[${PYTHON_USEDEP}]
+	$(python_gen_any_dep '
+		dev-python/myst-parser[${PYTHON_USEDEP}]
 		dev-python/sphinx[${PYTHON_USEDEP}]
-	') )
+	')
 	libffi? ( virtual/pkgconfig )
 	${PYTHON_DEPS}"
 # There are no file collisions between these versions but having :0
@@ -55,22 +57,17 @@ RDEPEND="${RDEPEND}
 PDEPEND="sys-devel/llvm-common
 	gold? ( >=sys-devel/llvmgold-${SLOT} )"
 
-PATCHES=(
-	"${FILESDIR}"/13.0.0/0001-addrspacecast.patch
-	"${FILESDIR}"/13.0.0/0002-selectInterleaveCount.patch
-)
-
-LLVM_COMPONENTS=( llvm )
+LLVM_COMPONENTS=( llvm cmake third-party )
 LLVM_MANPAGES=pregenerated
-LLVM_PATCHSET=13.0.0
 LLVM_USE_TARGETS=provide
+_LLVM_NEWEST_MANPAGE_RELEASE=21.1.0
 llvm.org_set_globals
 
 python_check_deps() {
-	use doc || return 0
+	llvm_are_manpages_built || return 0
 
-	has_version -b "dev-python/recommonmark[${PYTHON_USEDEP}]" &&
-	has_version -b "dev-python/sphinx[${PYTHON_USEDEP}]"
+	python_has_version -b "dev-python/myst-parser[${PYTHON_USEDEP}]" &&
+	python_has_version -b "dev-python/sphinx[${PYTHON_USEDEP}]"
 }
 
 check_live_ebuild() {
@@ -208,6 +205,12 @@ get_distribution_components() {
 		LLVMDemangle
 		LLVMSupport
 		LLVMTableGen
+
+		# testing libraries
+		llvm_gtest
+		llvm_gtest_main
+		LLVMTestingAnnotations
+		LLVMTestingSupport
 	)
 
 	if multilib_is_native_abi; then
@@ -219,6 +222,7 @@ get_distribution_components() {
 			count
 			not
 			yaml-bench
+			UnicodeNameMappingGenerator
 
 			# tools
 			bugpoint
@@ -240,10 +244,14 @@ get_distribution_components() {
 			llvm-cxxdump
 			llvm-cxxfilt
 			llvm-cxxmap
+			llvm-debuginfo-analyzer
+			llvm-debuginfod
+			llvm-debuginfod-find
 			llvm-diff
 			llvm-dis
 			llvm-dlltool
 			llvm-dwarfdump
+			llvm-dwarfutil
 			llvm-dwp
 			llvm-exegesis
 			llvm-extract
@@ -275,7 +283,9 @@ get_distribution_components() {
 			llvm-rc
 			llvm-readelf
 			llvm-readobj
+			llvm-readtapi
 			llvm-reduce
+			llvm-remarkutil
 			llvm-rtdyld
 			llvm-sim
 			llvm-size
@@ -284,7 +294,7 @@ get_distribution_components() {
 			llvm-strings
 			llvm-strip
 			llvm-symbolizer
-			llvm-tapi-diff
+			llvm-tli-checker
 			llvm-undname
 			llvm-windres
 			llvm-xray
@@ -344,7 +354,10 @@ multilib_src_configure() {
 		# is that the former list is explicitly verified at cmake time
 		-DLLVM_TARGETS_TO_BUILD=""
 		-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="${LLVM_TARGETS// /;}"
+		-DLLVM_INCLUDE_BENCHMARKS=OFF
+		-DLLVM_INCLUDE_TESTS=ON
 		-DLLVM_BUILD_TESTS=$(usex test)
+		-DLLVM_INSTALL_GTEST=ON
 
 		-DLLVM_ENABLE_FFI=$(usex libffi)
 		-DLLVM_ENABLE_LIBEDIT=$(usex libedit)
@@ -355,6 +368,7 @@ multilib_src_configure() {
 		-DLLVM_ENABLE_EH=ON
 		-DLLVM_ENABLE_RTTI=ON
 		-DLLVM_ENABLE_Z3_SOLVER=$(usex z3)
+		-DLLVM_ENABLE_ZSTD=$(usex zstd)
 
 		-DLLVM_HOST_TRIPLE="${CHOST}"
 
@@ -378,14 +392,6 @@ multilib_src_configure() {
 			-DLLVM_ENABLE_LIBCXX=ON
 		)
 	fi
-
-#	Note: go bindings have no CMake rules at the moment
-#	but let's kill the check in case they are introduced
-#	if ! multilib_is_native_abi || ! use go; then
-		mycmakeargs+=(
-			-DGO_EXECUTABLE=GO_EXECUTABLE-NOTFOUND
-		)
-#	fi
 
 	use test && mycmakeargs+=(
 		-DLLVM_LIT_ARGS="$(get_lit_flags)"
@@ -414,16 +420,6 @@ multilib_src_configure() {
 		)
 	fi
 
-	if tc-is-cross-compiler; then
-		local tblgen="${EPREFIX}/usr/lib/llvm/${SLOT}/bin/llvm-tblgen"
-		[[ -x "${tblgen}" ]] \
-			|| die "${tblgen} not found or usable"
-		mycmakeargs+=(
-			-DCMAKE_CROSSCOMPILING=ON
-			-DLLVM_TABLEGEN="${tblgen}"
-		)
-	fi
-
 	# workaround BMI bug in gcc-7 (fixed in 7.4)
 	# https://bugs.gentoo.org/649880
 	# apply only to x86, https://bugs.gentoo.org/650506
@@ -446,7 +442,7 @@ multilib_src_configure() {
 }
 
 multilib_src_compile() {
-	cmake_build distribution
+	tc-env_build cmake_build distribution
 
 	pax-mark m "${BUILD_DIR}"/bin/llvm-rtdyld
 	pax-mark m "${BUILD_DIR}"/bin/lli

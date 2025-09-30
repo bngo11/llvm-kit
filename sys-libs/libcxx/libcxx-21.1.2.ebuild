@@ -35,7 +35,7 @@ DOCS=( CREDITS.TXT )
 
 LLVM_MAX_SLOT=${SLOT%%.*}
 LLVM_COMPONENTS=( libcxx{,abi} llvm/{cmake,utils/llvm-lit} )
-LLVM_PATCHSET=${PV/_/-}
+#LLVM_PATCHSET=${PV/_/-}
 llvm.org_set_globals
 
 python_check_deps() {

@@ -26,7 +26,6 @@ RDEPEND="
 		virtual/libelf:=[${MULTILIB_USEDEP}]
 		dev-libs/libffi:=[${MULTILIB_USEDEP}]
 		~sys-devel/llvm-${PV}[${MULTILIB_USEDEP}]
-		cuda? ( dev-util/nvidia-cuda-toolkit:= )
 	)"
 # tests:
 # - dev-python/lit provides the test runner
@@ -44,8 +43,7 @@ BDEPEND="dev-lang/perl
 		sys-devel/clang
 	)"
 
-LLVM_COMPONENTS=( openmp llvm/include )
-LLVM_PATCHSET=${PV/_/-}-r1
+LLVM_COMPONENTS=( openmp cmake llvm/include )
 llvm.org_set_globals
 
 python_check_deps() {
@@ -93,15 +91,8 @@ multilib_src_configure() {
 		-DLIBOMP_COPY_EXPORTS=OFF
 	)
 	use offload && mycmakeargs+=(
-		# this is non-fatal and libomp checks for CUDA conditionally
-		# to ABI, so we can just ignore passing the wrong value
-		# on non-amd64 ABIs
-		-DCMAKE_DISABLE_FIND_PACKAGE_CUDA=$(usex !cuda)
-
-		-DLIBOMPTARGET_BUILD_AMDGCN_BCLIB=$(usex llvm_targets_AMDGPU)
-		-DLIBOMPTARGET_BUILD_NVPTX_BCLIB=$(usex llvm_targets_NVPTX)
-		# a cheap hack to force clang
-		-DLIBOMPTARGET_NVPTX_CUDA_COMPILER="$(type -P "${CHOST}-clang")"
+		-DLIBOMPTARGET_BUILD_AMDGPU_PLUGIN=$(usex llvm_targets_AMDGPU)
+		-DLIBOMPTARGET_BUILD_CUDA_PLUGIN=$(usex llvm_targets_NVPTX)
 	)
 	use test && mycmakeargs+=(
 		# this project does not use standard LLVM cmake macros

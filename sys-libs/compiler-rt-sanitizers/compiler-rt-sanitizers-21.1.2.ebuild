@@ -26,7 +26,8 @@ REQUIRED_USE="
 	test? (
 		cfi? ( ubsan )
 		gwp-asan? ( scudo )
-	)"
+	)
+"
 RESTRICT="!test? ( test ) !clang? ( test )"
 
 LLVM_MAX_SLOT=${SLOT%%.*}
@@ -40,15 +41,14 @@ BDEPEND="
 	elibc_glibc? ( net-libs/libtirpc )
 	test? (
 		!<sys-apps/sandbox-2.13
-		$(python_gen_any_dep ">=dev-python/lit-5[\${PYTHON_USEDEP}]")
+		$(python_gen_any_dep ">=dev-python/lit-15[\${PYTHON_USEDEP}]")
 		=sys-devel/clang-${PV%_*}*:${CLANG_SLOT}
 		sys-libs/compiler-rt:${SLOT}
 	)
 	${PYTHON_DEPS}"
 
-LLVM_COMPONENTS=( compiler-rt )
-LLVM_TEST_COMPONENTS=( llvm/lib/Testing/Support llvm/utils/unittest )
-LLVM_PATCHSET=${PV/_/-}
+LLVM_COMPONENTS=( compiler-rt cmake llvm/cmake )
+LLVM_TEST_COMPONENTS=( llvm/lib/Testing/Support third-party )
 llvm.org_set_globals
 
 python_check_deps() {
@@ -118,6 +118,7 @@ src_configure() {
 	done
 
 	local mycmakeargs=(
+		-DLLVM_CONFIG_PATH="/usr/lib/llvm/${LLVM_MAJOR}/bin/llvm-config"
 		-DCOMPILER_RT_INSTALL_PATH="${EPREFIX}/usr/lib/clang/${SLOT}"
 		# use a build dir structure consistent with install
 		# this makes it possible to easily deploy test-friendly clang
@@ -138,7 +139,6 @@ src_configure() {
 	)
 	if use test; then
 		mycmakeargs+=(
-			-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
 			-DLLVM_EXTERNAL_LIT="${EPREFIX}/usr/bin/lit"
 			-DLLVM_LIT_ARGS="$(get_lit_flags)"
 

@@ -59,6 +59,7 @@ LLVM_TEST_COMPONENTS=(
 	third-party
 )
 LLVM_USE_TARGETS=llvm
+_LLVM_NEWEST_MANPAGE_RELEASE=18.1.0
 llvm.org_set_globals
 
 # Multilib notes:

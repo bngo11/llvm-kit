@@ -15,23 +15,27 @@ HOMEPAGE="https://llvm.org/"
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA MIT"
 SLOT="$(ver_cut 1)"
 KEYWORDS="next"
-IUSE="debug default-compiler-rt default-libcxx default-lld tinfo
-	doc llvm-libunwind +static-analyzer test xml kernel_FreeBSD"
+IUSE="debug default-compiler-rt default-libcxx default-lld
+	doc +extra llvm-libunwind ieee-long-double +pie +static-analyzer test xml"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 RESTRICT="!test? ( test )"
 
-RDEPEND="
+DEPEND="
 	~sys-devel/llvm-${PV}:${SLOT}=[debug=,${MULTILIB_USEDEP}]
 	static-analyzer? ( dev-lang/perl:* )
 	xml? ( dev-libs/libxml2:2= )
-	${PYTHON_DEPS}"
+"
 
-DEPEND="${RDEPEND}"
+RDEPEND="
+	${PYTHON_DEPS}
+	${DEPEND}
+"
 BDEPEND="
+	${PYTHON_DEPS}
 	>=dev-util/cmake-3.16
-	doc? ( dev-python/sphinx )
+	doc? ( dev-python/myst-parser dev-python/sphinx )
 	xml? ( virtual/pkgconfig )
-	${PYTHON_DEPS}"
+"
 PDEPEND="
 	sys-devel/clang-common
 	~sys-devel/clang-runtime-${PV}
@@ -41,17 +45,21 @@ PDEPEND="
 		!llvm-libunwind? ( sys-libs/libunwind )
 	)
 	default-libcxx? ( >=sys-libs/libcxx-${PV} )
-	default-lld? ( sys-devel/lld )"
+	default-lld? ( sys-devel/lld )
+"
 
-LLVM_COMPONENTS=( clang clang-tools-extra )
+LLVM_COMPONENTS=(
+	clang clang-tools-extra cmake
+	llvm/lib/Transforms/Hello
+)
 LLVM_MANPAGES=pregenerated
 LLVM_TEST_COMPONENTS=(
-	llvm/lib/Testing/Support
-	llvm/utils/{lit,llvm-lit,unittest}
-	llvm/utils/{UpdateTestChecks,update_cc_test_checks.py}
+	llvm/lib/Testing
+	llvm/utils
+	third-party
 )
-LLVM_PATCHSET=${PV/_/-}
 LLVM_USE_TARGETS=llvm
+_LLVM_NEWEST_MANPAGE_RELEASE=21.1.0
 llvm.org_set_globals
 
 # Multilib notes:
@@ -65,11 +73,6 @@ llvm.org_set_globals
 # Therefore: use sys-devel/clang[${MULTILIB_USEDEP}] only if you need
 # multilib clang* libraries (not runtime, not wrappers).
 
-pkg_setup() {
-	LLVM_MAX_SLOT=${SLOT} llvm_pkg_setup
-	python-single-r1_pkg_setup
-}
-
 src_prepare() {
 	# create extra parent dir for relative CLANG_RESOURCE_DIR access
 	mkdir -p x/y || die
@@ -79,8 +82,12 @@ src_prepare() {
 
 	# add Gentoo Portage Prefix for Darwin (see prefix-dirs.patch)
 	eprefixify \
-		lib/Frontend/InitHeaderSearch.cpp \
+		lib/Lex/InitHeaderSearch.cpp \
 		lib/Driver/ToolChains/Darwin.cpp || die
+
+	if ! use prefix-guest && [[ -n ${EPREFIX} ]]; then
+		sed -i "/LibDir.*Loader/s@return \"\/\"@return \"${EPREFIX}/\"@" lib/Driver/ToolChains/Linux.cpp || die
+	fi
 }
 
 check_distribution_components() {
@@ -96,10 +103,6 @@ check_distribution_components() {
 				case ${l} in
 					# meta-targets
 					clang-libraries|distribution)
-						continue
-						;;
-					# headers for clang-tidy static library
-					clang-tidy-headers)
 						continue
 						;;
 					# tools
@@ -153,6 +156,27 @@ get_distribution_components() {
 		clang-headers
 		clang-resource-headers
 		libclang-headers
+ 
+		aarch64-resource-headers
+		arm-common-resource-headers
+		arm-resource-headers
+		core-resource-headers
+		cuda-resource-headers
+		hexagon-resource-headers
+		hip-resource-headers
+		hlsl-resource-headers
+		mips-resource-headers
+		opencl-resource-headers
+		openmp-resource-headers
+		ppc-htm-resource-headers
+		ppc-resource-headers
+		riscv-resource-headers
+		systemz-resource-headers
+		utility-resource-headers
+		ve-resource-headers
+		webassembly-resource-headers
+		windows-resource-headers
+		x86-resource-headers
 
 		# libs
 		clang-cpp
@@ -166,44 +190,55 @@ get_distribution_components() {
 			libclang-python-bindings
 
 			# tools
+#			amdgpu-arch
 			c-index-test
 			clang
 			clang-format
+			clang-linker-wrapper
 			clang-offload-bundler
-			clang-offload-wrapper
+			clang-offload-packager
 			clang-refactor
+			clang-repl
 			clang-rename
 			clang-scan-deps
 			diagtool
 			hmaptool
+			nvptx-arch
 
-			# extra tools
-			clang-apply-replacements
-			clang-change-namespace
-			clang-doc
-			clang-include-fixer
-			clang-move
-			clang-query
-			clang-reorder-fields
-			clang-tidy
-			clangd
-			find-all-symbols
-			modularize
-			pp-trace
+			# needed for cross-compiling Clang
+			clang-tblgen
 		)
 
-		if llvm_are_manpages_built; then
+		if use extra; then
 			out+=(
-				# manpages
-				docs-clang-man
-				docs-clang-tools-man
+				# extra tools
+				clang-apply-replacements
+				clang-change-namespace
+				clang-doc
+				clang-include-cleaner
+				clang-include-fixer
+				clang-move
+				clang-pseudo
+				clang-query
+				clang-reorder-fields
+				clang-tidy
+				clang-tidy-headers
+				clangd
+				find-all-symbols
+				modularize
+				pp-trace
 			)
 		fi
 
-		use doc && out+=(
-			docs-clang-html
-			docs-clang-tools-html
-		)
+		if llvm_are_manpages_built; then
+			out+=( docs-clang-man )
+			use extra && out+=( docs-clang-tools-man )
+		fi
+
+		if use doc; then
+			out+=( docs-clang-html )
+			use extra && out+=( docs-clang-tools-html )
+		fi
 
 		use static-analyzer && out+=(
 			clang-check
@@ -222,44 +257,52 @@ multilib_src_configure() {
 	local clang_version=$(ver_cut 1-3 "${llvm_version}")
 
 	local mycmakeargs=(
-		-DLLVM_CMAKE_PATH="${EPREFIX}/usr/lib/llvm/${SLOT}/$(get_libdir)/cmake/llvm"
+		-DDEFAULT_SYSROOT=$(usex prefix-guest "" "${EPREFIX}")
 		-DCMAKE_INSTALL_PREFIX="${EPREFIX}/usr/lib/llvm/${SLOT}"
 		-DCMAKE_INSTALL_MANDIR="${EPREFIX}/usr/lib/llvm/${SLOT}/share/man"
+		-DCLANG_CONFIG_FILE_SYSTEM_DIR="${EPREFIX}/etc/clang"
 		# relative to bindir
 		-DCLANG_RESOURCE_DIR="../../../../lib/clang/${clang_version}"
 
 		-DBUILD_SHARED_LIBS=OFF
 		-DCLANG_LINK_CLANG_DYLIB=ON
 		-DLLVM_DISTRIBUTION_COMPONENTS=$(get_distribution_components)
+		-DCLANG_INCLUDE_TESTS=$(usex test)
 
 		-DLLVM_TARGETS_TO_BUILD="${LLVM_TARGETS// /;}"
-		-DLLVM_BUILD_TESTS=$(usex test)
 
 		# these are not propagated reliably, so redefine them
 		-DLLVM_ENABLE_EH=ON
 		-DLLVM_ENABLE_RTTI=ON
 
-		-DCMAKE_DISABLE_FIND_PACKAGE_LibXml2=$(usex !xml)
 		# libgomp support fails to find headers without explicit -I
 		# furthermore, it provides only syntax checking
 		-DCLANG_DEFAULT_OPENMP_RUNTIME=libomp
 
 		# disable using CUDA to autodetect GPU, just build for all
-		-DCMAKE_DISABLE_FIND_PACKAGE_CUDA=ON
+		-DCMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit=ON
+		# disable linking to HSA to avoid automagic dep,
+		# load it dynamically instead
+		-DCMAKE_DISABLE_FIND_PACKAGE_hsa-runtime64=ON
 
-		# override default stdlib and rtlib
-		-DCLANG_DEFAULT_CXX_STDLIB=$(usex default-libcxx libc++ "")
-		-DCLANG_DEFAULT_RTLIB=$(usex default-compiler-rt compiler-rt "")
-		-DCLANG_DEFAULT_LINKER=$(usex default-lld lld "")
-		-DCLANG_DEFAULT_UNWINDLIB=$(usex default-compiler-rt libunwind "")
+		-DCLANG_DEFAULT_PIE_ON_LINUX=$(usex pie)
 
+		-DCLANG_ENABLE_LIBXML2=$(usex xml)
 		-DCLANG_ENABLE_ARCMT=$(usex static-analyzer)
 		-DCLANG_ENABLE_STATIC_ANALYZER=$(usex static-analyzer)
+		# TODO: CLANG_ENABLE_HLSL?
 
 		-DPython3_EXECUTABLE="${PYTHON}"
 	)
+
+	if ! use elibc_musl; then
+		mycmakeargs+=(
+			-DPPC_LINUX_DEFAULT_IEEELONGDOUBLE=$(usex ieee-long-double)
+		)
+	fi
+
 	use test && mycmakeargs+=(
-		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
+		-DLLVM_BUILD_TESTS=ON
 		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 	)
 
@@ -271,14 +314,22 @@ multilib_src_configure() {
 				-DLLVM_BUILD_DOCS=ON
 				-DLLVM_ENABLE_SPHINX=ON
 				-DCLANG_INSTALL_SPHINX_HTML_DIR="${EPREFIX}/usr/share/doc/${PF}/html"
-				-DCLANG-TOOLS_INSTALL_SPHINX_HTML_DIR="${EPREFIX}/usr/share/doc/${PF}/tools-extra"
 				-DSPHINX_WARNINGS_AS_ERRORS=OFF
 			)
+			if use extra; then
+				mycmakeargs+=(
+					-DCLANG-TOOLS_INSTALL_SPHINX_HTML_DIR="${EPREFIX}/usr/share/doc/${PF}/tools-extra"
+				)
+			fi
 		fi
 		mycmakeargs+=(
-			-DLLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR="${WORKDIR}"/clang-tools-extra
 			-DCLANG_INCLUDE_DOCS=${build_docs}
-			-DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=${build_docs}
+		)
+	fi
+	if use extra; then
+		mycmakeargs+=(
+			-DLLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR="${WORKDIR}"/clang-tools-extra
+ 			-DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=${build_docs}
 		)
 	else
 		mycmakeargs+=(
@@ -313,10 +364,6 @@ multilib_src_configure() {
 }
 
 multilib_src_compile() {
-	# libtinfo is separate from libcurses in >=ncurses-6
-	if use tinfo; then
-		sed -i "s:lcurses:lcurses -ltinfo:" ${WORKDIR}/x/y/*/build.ninja
-	fi
 	cmake_build distribution
 
 	# provide a symlink for tests
@@ -344,6 +391,9 @@ src_install() {
 	# Move runtime headers to /usr/lib/clang, where they belong
 	mv "${ED}"/usr/include/clangrt "${ED}"/usr/lib/clang || die
 	# move (remaining) wrapped headers back
+	if use extra; then
+		mv "${T}"/clang-tidy "${ED}"/usr/include/ || die
+	fi
 	mv "${ED}"/usr/include "${ED}"/usr/lib/llvm/${SLOT}/include || die
 
 	# Apply CHOST and version suffix to clang tools
@@ -379,11 +429,6 @@ src_install() {
 				"/usr/lib/llvm/${SLOT}/bin/${abi_chost}-${i}"
 		done
 	done
-
-	# Remove unnecessary headers on FreeBSD, bug #417171
-	if use kernel_FreeBSD; then
-		rm "${ED}"/usr/lib/clang/${clang_full_version}/include/{std,float,iso,limits,tgmath,varargs}*.h || die
-	fi
 }
 
 multilib_src_install() {
@@ -393,7 +438,12 @@ multilib_src_install() {
 	# (also drop the version suffix from runtime headers)
 	rm -rf "${ED}"/usr/include || die
 	mv "${ED}"/usr/lib/llvm/${SLOT}/include "${ED}"/usr/include || die
-	mv "${ED}"/usr/lib/llvm/${SLOT}/$(get_libdir)/clang "${ED}"/usr/include/clangrt || die
+	mv "${ED}"/usr/lib/clang "${ED}"/usr/include/clangrt || die
+	if multilib_is_native_abi; then
+		# don't wrap clang-tidy headers, the list is too long
+		# (they're fine for non-native ABI but enabling the targets is problematic)
+		mv "${ED}"/usr/include/clang-tidy "${T}/" || die
+	fi
 }
 
 multilib_src_install_all() {
@@ -417,9 +467,11 @@ pkg_postinst() {
 
 	elog "You can find additional utility scripts in:"
 	elog "  ${EROOT}/usr/lib/llvm/${SLOT}/share/clang"
-	elog "Some of them are vim integration scripts (with instructions inside)."
-	elog "The run-clang-tidy.py script requires the following additional package:"
-	elog "  dev-python/pyyaml"
+	if use extra; then
+		elog "Some of them are vim integration scripts (with instructions inside)."
+		elog "The run-clang-tidy.py script requires the following additional package:"
+		elog "  dev-python/pyyaml"
+	fi
 }
 
 pkg_postrm() {

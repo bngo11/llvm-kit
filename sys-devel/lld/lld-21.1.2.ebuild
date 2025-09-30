@@ -9,12 +9,15 @@ DESCRIPTION="The LLVM linker (link editor)"
 HOMEPAGE="https://llvm.org/"
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA"
-SLOT="0"
+SLOT="$(ver_cut 1)"
 KEYWORDS="next"
 IUSE="debug test"
 RESTRICT="!test? ( test )"
 
-RDEPEND="~sys-devel/llvm-${PV}"
+RDEPEND="
+	~sys-devel/llvm-${PV}
+	sys-libs/zlib:=
+"
 DEPEND="${RDEPEND}"
 BDEPEND="
 	test? (
@@ -22,8 +25,8 @@ BDEPEND="
 		$(python_gen_any_dep "~dev-python/lit-${PV}[\${PYTHON_USEDEP}]")
 	)"
 
-LLVM_COMPONENTS=( lld libunwind/include/mach-o )
-LLVM_TEST_COMPONENTS=( llvm/utils/{lit,unittest} )
+LLVM_COMPONENTS=( lld cmake libunwind/include/mach-o )
+LLVM_TEST_COMPONENTS=( llvm/utils third-party )
 llvm.org_set_globals
 
 python_check_deps() {
@@ -50,13 +53,14 @@ src_configure() {
 	# LLVM_ENABLE_ASSERTIONS=NO does not guarantee this for us, #614844
 	use debug || local -x CPPFLAGS="${CPPFLAGS} -DNDEBUG"
 
+	use elibc_musl && append-ldflags -Wl,-z,stack-size=2097152
+
 	local mycmakeargs=(
+		-DCMAKE_INSTALL_PREFIX="${EPREFIX}/usr/lib/llvm/${SLOT}"
 		-DBUILD_SHARED_LIBS=ON
 		-DLLVM_INCLUDE_TESTS=$(usex test)
-		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
 	)
 	use test && mycmakeargs+=(
-		-DLLVM_BUILD_TESTS=ON
 		-DLLVM_EXTERNAL_LIT="${EPREFIX}/usr/bin/lit"
 		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 		-DPython3_EXECUTABLE="${PYTHON}"

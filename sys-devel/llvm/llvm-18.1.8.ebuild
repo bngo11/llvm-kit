@@ -60,6 +60,7 @@ PDEPEND="sys-devel/llvm-common
 LLVM_COMPONENTS=( llvm cmake third-party )
 LLVM_MANPAGES=pregenerated
 LLVM_USE_TARGETS=provide
+_LLVM_NEWEST_MANPAGE_RELEASE=18.1.0
 llvm.org_set_globals
 
 python_check_deps() {
