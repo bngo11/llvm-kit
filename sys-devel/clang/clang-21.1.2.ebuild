@@ -50,13 +50,10 @@ PDEPEND="
 
 LLVM_COMPONENTS=(
 	clang clang-tools-extra cmake
-	llvm/lib/Transforms/Hello
 )
 LLVM_MANPAGES=pregenerated
 LLVM_TEST_COMPONENTS=(
-	llvm/lib/Testing
 	llvm/utils
-	third-party
 )
 LLVM_USE_TARGETS=llvm
 _LLVM_NEWEST_MANPAGE_RELEASE=21.1.0
@@ -171,6 +168,7 @@ get_distribution_components() {
 		ppc-htm-resource-headers
 		ppc-resource-headers
 		riscv-resource-headers
+		spirv-resource-headers
 		systemz-resource-headers
 		utility-resource-headers
 		ve-resource-headers
@@ -194,16 +192,18 @@ get_distribution_components() {
 			c-index-test
 			clang
 			clang-format
+			clang-installapi
 			clang-linker-wrapper
+			clang-nvlink-wrapper
 			clang-offload-bundler
 			clang-offload-packager
 			clang-refactor
 			clang-repl
-			clang-rename
 			clang-scan-deps
+			clang-sycl-linker
 			diagtool
 			hmaptool
-			nvptx-arch
+			offload-arch
 
 			# needed for cross-compiling Clang
 			clang-tblgen
@@ -218,7 +218,6 @@ get_distribution_components() {
 				clang-include-cleaner
 				clang-include-fixer
 				clang-move
-				clang-pseudo
 				clang-query
 				clang-reorder-fields
 				clang-tidy
