@@ -16,16 +16,8 @@ IUSE="+spirv video_cards_nvidia video_cards_r600 video_cards_radeonsi"
 LLVM_MAX_SLOT=21
 BDEPEND="
 	${PYTHON_DEPS}
-	|| (
-		(
-			sys-devel/clang:18
-			spirv? ( dev-util/spirv-llvm-translator:18 )
-		)
-		(
-			sys-devel/clang:13
-			spirv? ( dev-util/spirv-llvm-translator:13 )
-		)
-	)
+	sys-devel/clang
+	spirv? ( dev-util/spirv-llvm-translator )
 "
 
 LLVM_COMPONENTS=( libclc )
