@@ -51,12 +51,11 @@ PDEPEND="
 LLVM_COMPONENTS=(
 	clang clang-tools-extra cmake
 )
-LLVM_MANPAGES=pregenerated
+LLVM_MANPAGES=1
 LLVM_TEST_COMPONENTS=(
 	llvm/utils
 )
 LLVM_USE_TARGETS=llvm
-_LLVM_NEWEST_MANPAGE_RELEASE=21.1.0
 llvm.org_set_globals
 
 # Multilib notes:
@@ -189,14 +188,14 @@ get_distribution_components() {
 
 			# tools
 #			amdgpu-arch
-			c-index-test
+#			c-index-test
 			clang
 			clang-format
 			clang-installapi
 			clang-linker-wrapper
 			clang-nvlink-wrapper
 			clang-offload-bundler
-			clang-offload-packager
+#			clang-offload-packager
 			clang-refactor
 			clang-repl
 			clang-scan-deps
