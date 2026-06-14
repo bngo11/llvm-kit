@@ -55,7 +55,7 @@ src_configure() {
 	use video_cards_radeonsi && libclc_targets+=(
 		"amdgcn--"
 		"amdgcn-mesa-mesa3d"
-		"amdgcn--amdhsa"
+		"amdgcn-amd-amdhsa"
 	)
 	[[ ${#libclc_targets[@]} ]] || die "libclc target missing!"
 
